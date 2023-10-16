@@ -141,11 +141,11 @@ class localfile {
      * Send the PDF to the browser or return it as a string.
      *
      * @param int $userid the id of the user whose certificate we want to view
-     * @param int $deliveryoption the delivery option of the customcert
+     * @param string $deliveryoption the delivery option of the customcert
      * @param bool $return Do we want to return the contents of the PDF?
      * @return string|void Can return the PDF in string format if specified.
      */
-    public function sendPDF(?int $userid = NULL, int $deliveryoption = certificate::DELIVERY_OPTION_DOWNLOAD, bool $return = false) {
+    public function sendPDF(?int $userid = NULL, string $deliveryoption = certificate::DELIVERY_OPTION_DOWNLOAD, bool $return = false) {
         global $USER;
 
         if (empty($userid)) {
