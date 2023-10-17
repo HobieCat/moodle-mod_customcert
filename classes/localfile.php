@@ -231,7 +231,19 @@ class localfile {
             'userid' => $USER->id,
             'author' => fullname($USER),
             'filepath' => '/' . $course->id . '/',
-            'filename' => $user_info->username . '_cert-' . $templateid . '_course-' . $course->shortname . '.pdf'
+            'filename' => self::buildFileName($user_info->username, $templateid, $course->shortname),
         ];
+    }
+
+    /**
+     * Build the PDF filename.
+     *
+     * @param string $username
+     * @param string $templateid
+     * @param string $courseShortname
+     * @return string the PDF file name
+     */
+    public static function buildFileName($username, $templateid, $courseShortname) {
+        return $username . '_cert-' . $templateid . '_course-' . $courseShortname . '.pdf';
     }
 }
