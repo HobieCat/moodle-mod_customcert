@@ -36,6 +36,7 @@ if (!has_capability('mod/customcert:viewallcertificates', context_system::instan
     die();
 }
 
+/** @var \moodle_database $DB */
 global $DB;
 
 // Increase the server timeout to handle the creation and sending of large zip files.
@@ -54,13 +55,15 @@ if ($courseid) {
 
 $context = $DB->get_record('context', ['contextlevel' => '50', 'instanceid' => $courseid]);
 $users = $DB->get_records('role_assignments', ['contextid' => $context->id]);
+list($userssql, $params) = $DB->get_in_or_equal(array_map(fn($u) => $u->userid, $users), SQL_PARAMS_NAMED);
+$usersObjs = $DB->get_records_select('user', "id {$userssql}", $params);
 
 // Build a list of files to zip.
 $filesforzipping = [];
 
 foreach ($certs as $certid => $cert_fields) {
     $template = null;
-    foreach ($users as $userid => $user_fields) {
+    foreach ($users as $roleAssignmentId => $user_fields) {
         if (!$DB->get_record('customcert_issues', ['userid' => $user_fields->userid, 'customcertid' => $certid])) {
             continue;
         }
@@ -73,11 +76,18 @@ foreach ($certs as $certid => $cert_fields) {
             // must generate the pdf
             $pdf = $template->generate_pdf(false, $user_fields->userid, true);
             if (!empty($pdf)) {
-                $file = $lf->getPDF($user_fields->userid);
+                if ($cert_fields->keeplocalcopy) {
+                    $file = $lf->getPDF($user_fields->userid);
+                } else {
+                    $file = [
+                        'content' => $pdf,
+                    ];
+                }
             }
         }
         if ($file) {
-            $filesforzipping['/' . $course->shortname . '/' . $cert_fields->name . '/' .$file->get_filename()] = $file;
+            $filename = \mod_customcert\localfile::buildFileName($usersObjs[$user_fields->userid]->username, $template->get_id(), $course->shortname);
+            $filesforzipping['/' . $course->shortname . '/' . $cert_fields->name . '/' . $filename] = $file;
         }
     }
 }
