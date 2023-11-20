@@ -21,7 +21,7 @@
  *
  * @package    mod_customcert
  * @author     Gonzalo Romero
- * @author     Giorgio Consorti <g.consorti@lynxalb.com>
+ * @author     Giorgio Consorti <g.consorti@lynxlab.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -53,31 +53,23 @@ if ($courseid) {
     unset($cert);
 }
 
-$context = $DB->get_record('context', ['contextlevel' => '50', 'instanceid' => $courseid]);
-$users = $DB->get_records('role_assignments', ['contextid' => $context->id]);
-list($userssql, $params) = $DB->get_in_or_equal(array_map(fn($u) => $u->userid, $users), SQL_PARAMS_NAMED);
-$usersObjs = $DB->get_records_select('user', "id {$userssql}", $params);
-
 // Build a list of files to zip.
 $filesforzipping = [];
 
 foreach ($certs as $certid => $cert_fields) {
-    $template = null;
-    foreach ($users as $roleAssignmentId => $user_fields) {
-        if (!$DB->get_record('customcert_issues', ['userid' => $user_fields->userid, 'customcertid' => $certid])) {
-            continue;
-        }
-        if (is_null($template)) {
-            $template = $DB->get_record('customcert_templates', ['id' => $cert_fields->templateid], '*', MUST_EXIST);
-            $template = new \mod_customcert\template($template);
-        }
-        $lf = new \mod_customcert\localfile($template);
-        if (false === $file = $lf->getPDF($user_fields->userid)) {
+    $issues = $DB->get_records('customcert_issues', ['customcertid' => $certid]);
+    list($userssql, $params) = $DB->get_in_or_equal(array_map(fn($i) => $i->userid, $issues), SQL_PARAMS_NAMED);
+    $usersObjs = $DB->get_records_select('user', "id {$userssql}", $params);
+    $template = $DB->get_record('customcert_templates', ['id' => $cert_fields->templateid], '*', MUST_EXIST);
+    $template = new \mod_customcert\template($template);
+    $lf = new \mod_customcert\localfile($template);
+    foreach ($issues as $issue) {
+        if (false === $file = $lf->getPDF($issue->userid)) {
             // must generate the pdf
-            $pdf = $template->generate_pdf(false, $user_fields->userid, true);
+            $pdf = $template->generate_pdf(false, $issue->userid, true);
             if (!empty($pdf)) {
                 if ($cert_fields->keeplocalcopy) {
-                    $file = $lf->getPDF($user_fields->userid);
+                    $file = $lf->getPDF($issue->userid);
                 } else {
                     $file = [
                         'content' => $pdf,
@@ -86,7 +78,7 @@ foreach ($certs as $certid => $cert_fields) {
             }
         }
         if ($file) {
-            $filename = \mod_customcert\localfile::buildFileName($usersObjs[$user_fields->userid]->username, $template->get_id(), $course->shortname);
+            $filename = \mod_customcert\localfile::buildFileName($usersObjs[$issue->userid]->username, $template->get_id(), $course->shortname);
             $filesforzipping['/' . $course->shortname . '/' . $cert_fields->name . '/' . $filename] = $file;
         }
     }
