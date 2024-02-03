@@ -325,7 +325,7 @@ function customcert_extend_navigation_course(\navigation_node $parentnode, \stdC
     $addnode = $context->contextlevel === 50;
     $addnode = $addnode && !($context->instanceid === SITEID);
     $addnode = $addnode && has_capability('mod/customcert:viewallcertificates', $context);
-    $isCourseNav = is_null($PAGE->cm->instance);
+    $isCourseNav = !is_null($PAGE->cm) && is_null($PAGE->cm->instance);
     if ($addnode && $isCourseNav) {
         if ($node = build_downloadall_node($isCourseNav, $course, $context)) {
             $parentnode->add_node($node);
