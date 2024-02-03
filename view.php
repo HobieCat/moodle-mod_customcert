@@ -93,11 +93,9 @@ if ($deleteissue && $canmanage && confirm_sesskey()) {
         exit();
     }
 
-    // Delete the issue.
-    $DB->delete_records('customcert_issues', ['id' => $deleteissue, 'customcertid' => $customcert->id]);
     // Always delete local copy.
     if ($candeletelocalcopy) {
-        $issues = $DB->get_records('customcert_issues', array('id' => $deleteissue, 'customcertid' => $customcert->id));
+        $issues = $DB->get_records('customcert_issues', ['id' => $deleteissue, 'customcertid' => $customcert->id]);
         if (!empty($issues)) {
             $lf = new \mod_customcert\localfile(new \mod_customcert\template($template));
             array_map(fn($issue) => $lf->deletePDF($issue->userid), $issues);
@@ -106,7 +104,7 @@ if ($deleteissue && $canmanage && confirm_sesskey()) {
 
     if (!$deletelocalcopy) {
         // Delete the issue.
-        $DB->delete_records('customcert_issues', array('id' => $deleteissue, 'customcertid' => $customcert->id));
+        $DB->delete_records('customcert_issues', ['id' => $deleteissue, 'customcertid' => $customcert->id]);
     }
 
     // Redirect back to the manage templates page.
